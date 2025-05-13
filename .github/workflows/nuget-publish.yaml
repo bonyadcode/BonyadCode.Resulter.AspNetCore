@@ -1,0 +1,38 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on tags like v1.0.0, v1.0.0-alpha, etc.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Pack
+        run: dotnet pack --configuration Release --no-build --output ./nupkgs
+
+      - name: Set Version from Git Tag
+        run: echo "Version=$(echo $GITHUB_REF | sed 's/refs\/tags\///')" >> $GITHUB_ENV  # Extract version from tag
+
+      - name: Push to NuGet (Pre-release)
+        if: contains(github.ref, '-alpha') || contains(github.ref, '-beta')  # If the tag is a pre-release
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --prerelease
+
+      - name: Push to NuGet (Stable)
+        if: startsWith(github.ref, 'refs/tags/v') && !(contains(github.ref, '-alpha') || contains(github.ref, '-beta'))  # If the tag is stable (no alpha/beta)
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}

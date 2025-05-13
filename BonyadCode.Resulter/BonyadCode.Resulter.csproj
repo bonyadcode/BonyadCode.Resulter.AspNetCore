@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        
+        <PackageId>BonyadCode.Resulter</PackageId>
+        <Version>1.0.1</Version>
+        <Authors>Mojtaba Hosseini</Authors>
+        <Company>BonyadCode</Company>
+        <Description>A set of utilities for returning standardized API results, supporting both controllers and minimal APIs.</Description>
+        <PackageTags>Resulter;ResultBuilder;API;Web;Minimal API;Controller;IResult;Results;IActionResult;ObjectResult</PackageTags>
+        <RepositoryUrl>https://github.com/bonyadcode/Resulter</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference  Include="Microsoft.AspNetCore.App"/>
+        <None Include="..\README.md" Pack="true" PackagePath=""/>
+    </ItemGroup>
+
+</Project>
