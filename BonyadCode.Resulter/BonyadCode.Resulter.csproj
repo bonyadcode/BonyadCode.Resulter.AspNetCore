@@ -6,18 +6,20 @@
         <Nullable>enable</Nullable>
         
         <PackageId>BonyadCode.Resulter</PackageId>
-        <Version>1.0.1</Version>
+        <Version>1.0.2</Version>
         <Authors>Mojtaba Hosseini</Authors>
         <Company>BonyadCode</Company>
         <Description>A set of utilities for returning standardized API results, supporting both controllers and minimal APIs.</Description>
         <PackageTags>Resulter;ResultBuilder;API;Web;Minimal API;Controller;IResult;Results;IActionResult;ObjectResult</PackageTags>
         <RepositoryUrl>https://github.com/bonyadcode/Resulter</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
 
     <ItemGroup>
         <FrameworkReference  Include="Microsoft.AspNetCore.App"/>
         <None Include="..\README.md" Pack="true" PackagePath=""/>
+        <None Include="..\LICENSE" Pack="true" PackagePath=""/>
     </ItemGroup>
 
 </Project>
