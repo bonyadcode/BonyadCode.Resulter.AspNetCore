@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using System.Net;
 
 namespace BonyadCode.Resulter;
 
@@ -7,9 +7,9 @@ namespace BonyadCode.Resulter;
 /// </summary>
 public class ResultBuilder<T>(
     bool succeeded,
-    int? statusCode,
+    HttpStatusCode? httpStatusCode,
     T? data = default,
-    Dictionary<string, string[]>? errors = null)
+    ProblemDetails? problemDetails = null)
 {
     /// <summary>
     /// Indicates if the operation was successful.
@@ -19,7 +19,7 @@ public class ResultBuilder<T>(
     /// <summary>
     /// The HTTP status code for the result.
     /// </summary>
-    public int? StatusCode { get; set; } = statusCode;
+    public HttpStatusCode? HttpStatusCode { get; set; } = httpStatusCode;
 
     /// <summary>
     /// The data returned by the operation (if successful).
@@ -29,25 +29,47 @@ public class ResultBuilder<T>(
     /// <summary>
     /// A dictionary of errors (if the operation failed).
     /// </summary>
-    public Dictionary<string, string[]>? Errors { get; set; } = errors;
+    public ProblemDetails? ProblemDetails { get; set; }
 
     /// <summary>
     /// Creates a new instance of ResultBuilder.
     /// </summary>
-    public static ResultBuilder<T> Create(bool succeeded, int? statusCode, T? data = default, Dictionary<string, string[]>? errors = null) =>
-        new(succeeded, statusCode, data, errors);
+    public static ResultBuilder<T> Create(
+        bool succeeded,
+        HttpStatusCode? statusCode,
+        T? data = default,
+        ProblemDetails? problemDetails = null)
+    {
+        var result = new ResultBuilder<T>(succeeded, statusCode, data, problemDetails);
+        result.HttpStatusCode ??= problemDetails?.Status;
+        if (problemDetails != null) problemDetails.Status ??= result.HttpStatusCode;
+        result.HttpStatusCode ??= System.Net.HttpStatusCode.Continue;
+        return result;
+    }
 
     /// <summary>
     /// Creates a successful result with the provided data.
     /// </summary>
-    public static ResultBuilder<T> Success(T? data, int? statusCode = StatusCodes.Status200OK) =>
-        new(true, statusCode, data);
+    public static ResultBuilder<T> Success(
+        T? data,
+        HttpStatusCode? statusCode = System.Net.HttpStatusCode.OK)
+    {
+        var result = new ResultBuilder<T>(true, statusCode, data);
+        return result;
+    }
 
     /// <summary>
     /// Creates a failed result with optional error details.
     /// </summary>
-    public static ResultBuilder<T> Failure(Dictionary<string, string[]>? errors = null, int? statusCode = StatusCodes.Status400BadRequest) =>
-        new(false, statusCode, default, errors is { Count: > 0 } ? new Dictionary<string, string[]>(errors) : null);
+    public static ResultBuilder<T> Failure(
+        ProblemDetails? problemDetails = null,
+        HttpStatusCode? statusCode = System.Net.HttpStatusCode.BadRequest)
+    {
+        var result = new ResultBuilder<T>(false, statusCode, default, problemDetails);
+        result.HttpStatusCode ??= problemDetails?.Status;
+        if (problemDetails != null) problemDetails.Status ??= result.HttpStatusCode;
+        return result;
+    }
 }
 
 /// <summary>
@@ -55,24 +77,51 @@ public class ResultBuilder<T>(
 /// </summary>
 public class ResultBuilder : ResultBuilder<object?>
 {
-    private ResultBuilder(bool succeeded, int? statusCode, object? data = null, Dictionary<string, string[]>? errors = null)
-        : base(succeeded, statusCode, data, errors) { }
-
-    /// <summary>
-    /// Creates a successful result with no data.
-    /// </summary>
-    public static ResultBuilder Success(int? statusCode = StatusCodes.Status200OK) =>
-        new(true, statusCode);
-
-    /// <summary>
-    /// Creates a failed result with optional error details.
-    /// </summary>
-    public new static ResultBuilder Failure(Dictionary<string, string[]>? errors = null, int? statusCode = StatusCodes.Status400BadRequest) =>
-        new(false, statusCode, null, errors is { Count: > 0 } ? new Dictionary<string, string[]>(errors) : null);
+    private ResultBuilder(
+        bool succeeded,
+        HttpStatusCode? httpStatusCode,
+        object? data = null,
+        ProblemDetails? problemDetails = null)
+        : base(succeeded, httpStatusCode, data, problemDetails)
+    {
+    }
 
     /// <summary>
     /// Creates a custom result with data, status code, and errors.
     /// </summary>
-    public new static ResultBuilder Create(bool succeeded, int? statusCode, object? data = null, Dictionary<string, string[]>? errors = null) =>
-        new(succeeded, statusCode, data, errors);
+    public new static ResultBuilder Create(
+        bool succeeded,
+        HttpStatusCode? statusCode,
+        object? data = null,
+        ProblemDetails? problemDetails = null)
+    {
+        var result = new ResultBuilder(succeeded, statusCode, data, problemDetails);
+        result.HttpStatusCode ??= problemDetails?.Status;
+        if (problemDetails != null) problemDetails.Status ??= result.HttpStatusCode;
+        result.HttpStatusCode ??= System.Net.HttpStatusCode.Continue;
+        return result;
+    }
+
+    /// <summary>
+    /// Creates a successful result with no data.
+    /// </summary>
+    public static ResultBuilder Success(
+        HttpStatusCode? statusCode = System.Net.HttpStatusCode.OK)
+    {
+        var result = new ResultBuilder(true, statusCode);
+        return result;
+    }
+
+    /// <summary>
+    /// Creates a failed result with optional error details.
+    /// </summary>
+    public new static ResultBuilder Failure(
+        ProblemDetails? problemDetails = null,
+        HttpStatusCode? statusCode = System.Net.HttpStatusCode.BadRequest)
+    {
+        var result = new ResultBuilder(false, statusCode, null, problemDetails);
+        result.HttpStatusCode ??= problemDetails?.Status;
+        if (problemDetails != null) problemDetails.Status ??= result.HttpStatusCode;
+        return result;
+    }
 }

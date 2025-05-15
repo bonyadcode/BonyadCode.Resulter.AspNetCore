@@ -1,9 +1,10 @@
+using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BonyadCode.Resulter;
 
-public static class ResultBuilderExtensions
+public static class ResulterExtensions
 {
     #region Controllers
 
@@ -19,10 +20,10 @@ public static class ResultBuilderExtensions
     private static ObjectResult ToHttpResultController<T>(this ResultBuilder<T> result)
     {
         if (result.Succeeded)
-            return new ObjectResult(result.Data) { StatusCode = result.StatusCode };
+            return new ObjectResult(result.Data) { StatusCode = (int)result.HttpStatusCode };
 
-        var problem = BuildProblemDetails(result.Errors, result.StatusCode);
-        return new ObjectResult(problem) { StatusCode = result.StatusCode };
+        var problem = BuildProblemDetails(result.HttpStatusCode, result.ProblemDetails, (int)result.HttpStatusCode);
+        return new ObjectResult(problem) { StatusCode = (int)result.HttpStatusCode };
     }
 
     #endregion
@@ -41,9 +42,9 @@ public static class ResultBuilderExtensions
     private static IResult ToHttpResultMinimal<T>(this ResultBuilder<T> result)
     {
         if (result.Succeeded)
-            return Results.Json(result.Data, statusCode: result.StatusCode);
+            return Results.Json(result.Data, result.HttpStatusCode);
 
-        var problem = BuildProblemDetails(result.Errors, result.StatusCode);
+        var problem = BuildProblemDetails(result.HttpStatusCode, result.ProblemDetails, result.HttpStatusCode);
         return Results.Problem(problem);
     }
 
@@ -55,19 +56,19 @@ public static class ResultBuilderExtensions
     /// Helper method to build a ProblemDetails object for validation errors.
     /// </summary>
     private static ValidationProblemDetails BuildProblemDetails(
-        Dictionary<string, string[]>? errors,
-        int? statusCode,
-        ProblemDetailsOptions? options = null)
+        HttpStatusCode? statusCode,
+        ProblemDetails? problemDetails = null)
     {
-        options ??= new ProblemDetailsOptions(); // Use default options if none provided
+        problemDetails ??= new ProblemDetails(); // Use default options if none provided
 
-        var problem = new ValidationProblemDetails(errors ?? new Dictionary<string, string[]>())
+        var problem = new ValidationProblemDetails(new Dictionary<string, string[]>())
         {
-            Title = options.Title ?? "One or more validation errors occurred.",
-            Status = statusCode ?? StatusCodes.Status400BadRequest,
-            Type = options.Type ?? "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            // If you don't pass a custom Instance, we will automatically set it to the path of the current request
-            Instance = options.Instance ?? string.Empty
+            Type = problemDetails.Type ?? "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+            Title = problemDetails.Title ?? "A problem occured.",
+            Detail = problemDetails.Detail ?? "One or more validation errors occurred.",
+            Status = (int?)statusCode,
+            Instance = problemDetails.Instance ?? httpContext.Request.Path, // Auto-set request path if Instance is null
+            Extensions = problemDetails.Extensions?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
         };
 
         return problem;
