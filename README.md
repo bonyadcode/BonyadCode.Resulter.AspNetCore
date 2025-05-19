@@ -1,189 +1,177 @@
 
----
-
 # BonyadCode.Resulter
 
-A set of utilities for returning standardized API results, supporting both controllers and minimal APIs in ASP.NET Core. This package provides a flexible and reusable way to handle common HTTP responses (success, failure, validation errors) and can be easily integrated into your web API projects.
+A flexible utility library for returning standardized API results in ASP.NET Core. It supports both Controllers and Minimal APIs, simplifying your HTTP response logic while providing clear and consistent response structures, including success, failure, and detailed error feedback.
 
 ---
 
-## Features
+## ✨ Features
 
-* **Standardized Results**: Easily return consistent HTTP results (success, failure, validation errors) from your APIs.
-* **Supports Controllers & Minimal APIs**: Works seamlessly with both traditional controllers (`IActionResult`) and minimal APIs (`IResult`).
-* **Customizable Error Details**: Define custom metadata for validation errors and problem details using `ProblemDetailsOptions`.
-* **Clean & Concise**: Simplifies API responses, reduces boilerplate code, and improves maintainability.
+- **Standardized Responses**: Unified handling of success, failure, exceptions, and validation errors.
+- **Minimal APIs & Controllers Support**: Convert results to `IResult` or `IActionResult` effortlessly.
+- **Integrated Problem Details**: Leverages `ProblemDetails` for structured error reporting.
+- **Exception Handling Helpers**: Attach exception info cleanly to your response pipeline.
+- **Zero-Boilerplate Syntax**: Focus on your business logic, not HTTP result plumbing.
 
 ---
 
-## Installation
+## 📦 Installation
 
-You can install **BonyadCode.Resulter** via NuGet Package Manager or the .NET CLI:
+Install via the .NET CLI:
 
-### Using .NET CLI
-
-```bash
+```
 dotnet add package BonyadCode.Resulter
 ```
 
-### Using NuGet Package Manager
+Or via the NuGet Package Manager:
 
-Search for **BonyadCode.Resulter** in the NuGet Package Manager within your IDE, or use the following command:
-
-```bash
+```
 Install-Package BonyadCode.Resulter
 ```
 
 ---
 
-## Usage
+## 🚀 Quick Start
 
-### 1. **ResultBuilder Class**
-
-The core of this package is the `ResultBuilder<T>`. Use this class to wrap your operation results with data, status code, and errors.
-
-#### Example: Returning a Success Result
+### ✅ Success Result — Controller Example
 
 ```csharp
-public class ExampleController : ControllerBase
+[HttpGet("hello")]
+public IActionResult GetHello()
 {
-    public IActionResult GetExample()
-    {
-        var result = ResultBuilder<string>.Success("Success message");
-        return result.ToHttpResultController();
-    }
+    var result = ResultBuilder<string>.Success("Hello, world!");
+    return result.ToHttpResultController();
 }
 ```
 
-#### Example: Returning a Failure Result with Errors
+### ❌ Failure Result with Validation Errors — Controller Example
 
 ```csharp
-public class ExampleController : ControllerBase
-{
-    public IActionResult GetExample()
-    {
-        var errors = new Dictionary<string, string[]>
-        {
-            { "username", new[] { "Username is required." } },
-            { "password", new[] { "Password is too short." } }
-        };
-
-        var result = ResultBuilder<string>.Failure(errors);
-        return result.ToHttpResultController();
-    }
-}
-```
-
-#### Example: Returning a Success Result in Minimal APIs
-
-```csharp
-var app = WebApplication.CreateBuilder(args).Build();
-
-app.MapGet("/example", () =>
-{
-    var result = ResultBuilder<string>.Success("Success message");
-    return result.ToHttpResultMinimal();
-});
-
-app.Run();
-```
-
-#### Example: Returning a Failure Result in Minimal APIs
-
-```csharp
-var app = WebApplication.CreateBuilder(args).Build();
-
-app.MapGet("/example", () =>
+[HttpPost("register")]
+public IActionResult RegisterUser(UserDto dto)
 {
     var errors = new Dictionary<string, string[]>
     {
-        { "username", new[] { "Username is required." } },
-        { "password", new[] { "Password is too short." } }
+        { "Email", new[] { "Email is required." } },
+        { "Password", new[] { "Password must be at least 8 characters." } }
+    };
+
+    var result = ResultBuilder<string>.Failure(errors);
+    return result.ToHttpResultController();
+}
+```
+
+---
+
+## 🌐 Minimal API Usage
+
+### ✅ Success Result
+
+```csharp
+app.MapGet("/status", () =>
+{
+    var result = ResultBuilder<string>.Success("Service is up");
+    return result.ToHttpResultMinimal();
+});
+```
+
+### ❌ Failure Result
+
+```csharp
+app.MapPost("/login", (LoginRequest request) =>
+{
+    var errors = new Dictionary<string, string[]>
+    {
+        { "Username", new[] { "Username is required." } },
+        { "Password", new[] { "Password cannot be empty." } }
     };
 
     var result = ResultBuilder<string>.Failure(errors);
     return result.ToHttpResultMinimal();
 });
-
-app.Run();
 ```
 
 ---
 
-## Problem Details Customization
+## ⚙️ ProblemDetails Customization
 
-You can customize the `ProblemDetails` metadata (such as the `Title`, `Type`, and `Instance`) through the `ProblemDetailsOptions` class.
+You can attach detailed error metadata using the built-in helpers.
 
-#### Example: Customizing Problem Details
+### 🛠️ Attach Custom ProblemDetails
 
 ```csharp
-var options = new ProblemDetailsOptions
-{
-    Title = "Custom Validation Error",
-    Type = "https://myapi.com/problems/validation",
-    Instance = "/api/endpoint"
-};
+var result = ResultBuilder<string>.Failure("Invalid input");
+result = result.WithDetailedProblemDetails(
+    type: "https://yourdomain.com/problems/validation",
+    title: "Validation Failed",
+    details: "One or more fields are invalid.",
+    statusCode: HttpStatusCode.UnprocessableEntity,
+    instance: "/api/register",
+    errors: new Dictionary<string, string[]>
+    {
+        { "username", new[] { "Username already exists." } }
+    });
 
-var result = ResultBuilder<string>.Failure(errors);
-return result.ToHttpResultController(options);
+return result.ToHttpResultController();
 ```
 
 ---
 
-## Configuration
+## 🔥 Exception Handling Example
 
-The package is designed to be minimal, but you can customize it through the `ProblemDetailsOptions` class, allowing you to define:
-
-* **Title**: Custom title for the validation error details.
-* **Type**: URL to identify the error type.
-* **Instance**: Optional, typically used for identifying the specific instance (e.g., the URI) of the error.
-
----
-
-## Example with Custom Options
+Gracefully wrap unhandled exceptions:
 
 ```csharp
-var options = new ProblemDetailsOptions
+try
 {
-    Title = "Invalid Operation",
-    Type = "https://example.com/probs/invalid-operation",
-    Instance = "/api/users"
-};
-
-var errors = new Dictionary<string, string[]>
+    // Some logic that throws
+}
+catch (Exception ex)
 {
-    { "email", new[] { "Email is invalid." } }
-};
+    var result = ResultBuilder.Failure()
+        .WithExceptionProblemDetails(ex, httpContextAccessor);
 
-var result = ResultBuilder<string>.Failure(errors);
-return result.ToHttpResultController(options);
+    return result.ToHttpResultController();
+}
 ```
 
 ---
 
-## API Result Flow
+## 🧪 Tips for Best Use
 
-1. **Success**: When an operation is successful, you can return data along with the HTTP status code (default 200 OK).
-2. **Failure**: When an operation fails, you can include error details in a standardized format using `ProblemDetails`.
-3. **Validation Errors**: The package integrates with validation errors, providing detailed `ValidationProblemDetails`.
-
----
-
-## Contributing
-
-Contributions are welcome! If you find a bug or have an idea for a new feature, feel free to open an issue or submit a pull request.
+- Use `.Success(data)` and `.Failure(errors)` for simple flows.
+- Customize `.WithDetailedProblemDetails(...)` for fine-grained error metadata.
+- Use `.WithExceptionProblemDetails(...)` to standardize error reporting for thrown exceptions.
+- Use `.ToHttpResultController()` and `.ToHttpResultMinimal()` based on your API style.
 
 ---
 
-## License
+## 📚 API Response Pattern
 
-MIT License. See the [LICENSE](LICENSE) file for details.
+| Scenario         | Method                        | Status Code | Description                          |
+|------------------|-------------------------------|-------------|--------------------------------------|
+| Success          | `ResultBuilder.Success(...)`  | 200 OK      | Standard successful result           |
+| Failure          | `ResultBuilder.Failure(...)`  | 400 Bad Request | Generic or validation failure    |
+| Exception        | `WithExceptionProblemDetails` | 500 Internal Server Error | Server-side error |
+| Custom Error     | `WithDetailedProblemDetails`  | Any         | Fully customized error response      |
 
 ---
 
-## Links
+## 🤝 Contributing
 
-* [GitHub Repository](https://github.com/bonyadcode/Resulter)
-* [NuGet Package](https://www.nuget.org/packages/BonyadCode.Resulter)
+Contributions are welcome! Please open issues or submit pull requests on [GitHub](https://github.com/bonyadcode/Resulter).
+
+---
+
+## 📄 License
+
+APACHE License. See the [LICENSE](LICENSE) file for more details.
+
+---
+
+## 🔗 Links
+
+- 📦 [NuGet Package](https://www.nuget.org/packages/BonyadCode.Resulter)
+- 💻 [GitHub Repository](https://github.com/bonyadcode/Resulter)
 
 ---

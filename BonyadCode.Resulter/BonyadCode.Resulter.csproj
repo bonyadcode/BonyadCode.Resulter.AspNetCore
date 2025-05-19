@@ -4,9 +4,11 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        
+
+        <!-- NuGet Info -->
+        <IsPackable>true</IsPackable>
         <PackageId>BonyadCode.Resulter</PackageId>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
         <Authors>Mojtaba Hosseini</Authors>
         <Company>BonyadCode</Company>
         <Description>A set of utilities for returning standardized API results, supporting both controllers and minimal APIs.</Description>
@@ -14,16 +16,22 @@
         <RepositoryUrl>https://github.com/bonyadcode/Resulter</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
+
+        <!-- Source link (optional) -->
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <ItemGroup>
-        <FrameworkReference  Include="Microsoft.AspNetCore.App"/>
-        <None Include="..\README.md" Pack="true" PackagePath=""/>
-        <None Include="..\LICENSE" Pack="true" PackagePath=""/>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <None Include="README.md" Pack="true" PackagePath="" />
+        <None Include="LICENSE" Pack="true" PackagePath="" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="FluentValidation" Version="12.0.0" />
+        <PackageReference Include="FluentValidation" Version="12.0.0" />
     </ItemGroup>
 
 </Project>
