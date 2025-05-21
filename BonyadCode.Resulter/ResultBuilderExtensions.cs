@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace BonyadCode.Resulter;
 
@@ -120,7 +121,7 @@ public static partial class ResultBuilderExtensions
             Detail = details ?? "A problem occurred.",
             Status = (int)(statusCode ?? HttpStatusCode.BadRequest),
             Instance = instance ?? httpContext?.Request.Path,
-            Extensions = errors ?? new()
+            Extensions = errors ?? new Dictionary<string, object?>()
         };
         return result;
     }
@@ -150,10 +151,10 @@ public static partial class ResultBuilderExtensions
         }
 
         result.ProblemDetails!.Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1";
-        result.ProblemDetails.Title = "An exception was thrown.";
-        result.ProblemDetails.Detail = ex.Message;
+        result.ProblemDetails.Title = "An exception was thrown";
+        result.ProblemDetails.Detail = JsonConvert.SerializeObject(ex);
         result.ProblemDetails.Status = (int)HttpStatusCode.InternalServerError;
-        result.ProblemDetails.Instance = httpContext?.Request.Path ?? ex.Source;
+        result.ProblemDetails.Instance = httpContext?.Request.Path ?? ex.StackTrace;
         return result;
     }
 }
@@ -167,11 +168,11 @@ public static partial class ResultBuilderExtensions
     /// <summary>
     /// Adds validation error information using a single key and multiple values.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, string key,
+    public static ResultBuilder AddErrorsFromKeyValuePairs(this ResultBuilder result, string key,
         IList<string> valueList) =>
-        result.AddErrorExtensionsFromKeyValuePairs<object?>(key, valueList).ToVoidResultBuilder();
+        result.AddErrorsFromKeyValuePairs<object?>(key, valueList).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result, string key,
+    public static ResultBuilder<T> AddErrorsFromKeyValuePairs<T>(this ResultBuilder<T> result, string key,
         IList<string> valueList)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -183,10 +184,10 @@ public static partial class ResultBuilderExtensions
     /// Adds a single key-value pair as error detail.
     /// </summary>
     public static ResultBuilder
-        AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, string key, string value) =>
-        result.AddErrorExtensionsFromKeyValuePairs<object?>(key, value).ToVoidResultBuilder();
+        AddErrorsFromKeyValuePairs(this ResultBuilder result, string key, string value) =>
+        result.AddErrorsFromKeyValuePairs<object?>(key, value).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result, string key,
+    public static ResultBuilder<T> AddErrorsFromKeyValuePairs<T>(this ResultBuilder<T> result, string key,
         string value)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -197,11 +198,11 @@ public static partial class ResultBuilderExtensions
     /// <summary>
     /// Adds multiple keys sharing the same value.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, IList<string> keys,
+    public static ResultBuilder AddErrorsFromKeyValuePairs(this ResultBuilder result, IList<string> keys,
         string value) =>
-        result.AddErrorExtensionsFromKeyValuePairs<object?>(keys, value).ToVoidResultBuilder();
+        result.AddErrorsFromKeyValuePairs<object?>(keys, value).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result,
+    public static ResultBuilder<T> AddErrorsFromKeyValuePairs<T>(this ResultBuilder<T> result,
         IList<string> keys, string value)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -213,11 +214,11 @@ public static partial class ResultBuilderExtensions
     /// <summary>
     /// Maps each key to a corresponding value.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, IList<string> keys,
+    public static ResultBuilder AddErrorsFromKeyValuePairs(this ResultBuilder result, IList<string> keys,
         IList<string> values) =>
-        result.AddErrorExtensionsFromKeyValuePairs<object?>(keys, values).ToVoidResultBuilder();
+        result.AddErrorsFromKeyValuePairs<object?>(keys, values).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result,
+    public static ResultBuilder<T> AddErrorsFromKeyValuePairs<T>(this ResultBuilder<T> result,
         IList<string> keys, IList<string> values)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -229,11 +230,11 @@ public static partial class ResultBuilderExtensions
     /// <summary>
     /// Adds IdentityResult errors to the ProblemDetails extensions.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsFromIdentityError(this ResultBuilder result,
+    public static ResultBuilder AddErrorsFromIdentityResult(this ResultBuilder result,
         IdentityResult identityResult) =>
-        result.AddErrorExtensionsFromIdentityError<object?>(identityResult).ToVoidResultBuilder();
+        result.AddErrorsFromIdentityResult<object?>(identityResult).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromIdentityError<T>(this ResultBuilder<T> result,
+    public static ResultBuilder<T> AddErrorsFromIdentityResult<T>(this ResultBuilder<T> result,
         IdentityResult identityResult)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -245,12 +246,12 @@ public static partial class ResultBuilderExtensions
     /// <summary>
     /// Adds FluentValidation results to the ProblemDetails extensions.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsFromFluentValidationResult(this ResultBuilder result,
+    public static ResultBuilder AddErrorsFromFluentValidationResult(this ResultBuilder result,
         FluentValidation.Results.ValidationResult validationResult) =>
-        result.AddErrorExtensionsFromFluentValidationResult<object?>(validationResult)
+        result.AddErrorsFromFluentValidationResult<object?>(validationResult)
             .ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromFluentValidationResult<T>(
+    public static ResultBuilder<T> AddErrorsFromFluentValidationResult<T>(
         this ResultBuilder<T> result, FluentValidation.Results.ValidationResult validationResult)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -268,11 +269,11 @@ public static partial class ResultBuilderExtensions
     /// <summary>
     /// Adds DataAnnotations validation error.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsFromValidationResult(this ResultBuilder result,
+    public static ResultBuilder AddErrorsFromValidationResult(this ResultBuilder result,
         System.ComponentModel.DataAnnotations.ValidationResult validationResult) =>
-        result.AddErrorExtensionsFromValidationResult<object?>(validationResult).ToVoidResultBuilder();
+        result.AddErrorsFromValidationResult<object?>(validationResult).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromValidationResult<T>(this ResultBuilder<T> result,
+    public static ResultBuilder<T> AddErrorsFromValidationResult<T>(this ResultBuilder<T> result,
         System.ComponentModel.DataAnnotations.ValidationResult validationResult)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -284,11 +285,11 @@ public static partial class ResultBuilderExtensions
     /// <summary>
     /// Adds a list of invalid values for a specific property.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsFromValidationError(this ResultBuilder result,
+    public static ResultBuilder AddErrorsFromValidationError(this ResultBuilder result,
         string property, IList<string> values) =>
-        result.AddErrorExtensionsFromValidationError<object?>(property, values).ToVoidResultBuilder();
+        result.AddErrorsFromValidationError<object?>(property, values).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromValidationError<T>(this ResultBuilder<T> result,
+    public static ResultBuilder<T> AddErrorsFromValidationError<T>(this ResultBuilder<T> result,
         string property, IList<string> values)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
@@ -300,13 +301,13 @@ public static partial class ResultBuilderExtensions
     /// Adds all public properties of an exception as ProblemDetails extensions.
     /// </summary>
     public static ResultBuilder
-        AddErrorExtensionsFromException(this ResultBuilder result, Exception ex) =>
-        result.AddErrorExtensionsFromException<object?>(ex).ToVoidResultBuilder();
+        AddErrorsFromException(this ResultBuilder result, Exception ex) =>
+        result.AddErrorsFromException<object?>(ex).ToVoidResultBuilder();
 
-    public static ResultBuilder<T> AddErrorExtensionsFromException<T>(this ResultBuilder<T> result,
+    public static ResultBuilder<T> AddErrorsFromException<T>(this ResultBuilder<T> result,
         Exception ex)
     {
-        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        result = result.WithExceptionProblemDetails(ex);
         foreach (var property in ex.GetType().GetProperties())
             result.ProblemDetails?.Extensions.Add(property.Name,
                 new[] { property.GetValue(ex)?.ToString() ?? string.Empty });
