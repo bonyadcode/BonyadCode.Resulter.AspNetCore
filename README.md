@@ -1,40 +1,29 @@
-
 # BonyadCode.Resulter
 
-A flexible utility library for returning standardized API results in ASP.NET Core. It supports both Controllers and Minimal APIs, simplifying your HTTP response logic while providing clear and consistent response structures, including success, failure, and detailed error feedback.
+A robust utility library to standardize API responses in ASP.NET Core. Supports both Controllers and Minimal APIs with unified handling of success, failure, validation errors, and exceptions — using rich `ProblemDetails` in accordance with `RFC7807` and `RFC9457` standards.
 
 ---
 
 ## ✨ Features
 
-- **Standardized Responses**: Unified handling of success, failure, exceptions, and validation errors.
-- **Minimal APIs & Controllers Support**: Convert results to `IResult` or `IActionResult` effortlessly.
-- **Integrated Problem Details**: Leverages `ProblemDetails` for structured error reporting.
-- **Exception Handling Helpers**: Attach exception info cleanly to your response pipeline.
-- **Zero-Boilerplate Syntax**: Focus on your business logic, not HTTP result plumbing.
+- **Unified Result Model**: Consistent `ResultBuilder<T>` and `ResultBuilder` for all HTTP outcomes.
+- **Support for Minimal APIs & Controllers**: Seamlessly convert to `IActionResult` or `IResult`.
+- **ProblemDetails Integration**: Built-in helpers to enrich error responses with metadata.
+- **Zero Boilerplate**: Clean, expressive syntax that reduces repetitive response code.
 
 ---
 
 ## 📦 Installation
 
-Install via the .NET CLI:
-
-```
+```bash
 dotnet add package BonyadCode.Resulter
-```
-
-Or via the NuGet Package Manager:
-
-```
-Install-Package BonyadCode.Resulter
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Examples
 
-### ✅ Success Result — Controller Example
-
+### ✅ Success (Controller)
 ```csharp
 [HttpGet("hello")]
 public IActionResult GetHello()
@@ -44,20 +33,106 @@ public IActionResult GetHello()
 }
 ```
 
-### ❌ Failure Result with Validation Errors — Controller Example
+**Response JSON:**
+```json
+{
+  "succeeded": true,
+  "httpStatusCode": 200,
+  "data": "Hello, world!",
+  "problemDetails": null
+}
+```
 
+### ✅ Success (Minimal Api)
+```csharp
+[HttpGet("hello")]
+public IActionResult GetHello()
+{
+    var result = ResultBuilder<string>.Success("Hello, world!");
+    return result.ToHttpResultController();
+}
+```
+
+**Response JSON:**
+```json
+{
+  "succeeded": true,
+  "httpStatusCode": 200,
+  "data": "Hello, world!",
+  "problemDetails": null
+}
+```
+
+### ✅ Custom Success (Controller)
+```csharp
+[HttpGet("hello")]
+public IActionResult GetHello()
+{
+    var result = ResultBuilder.Success("User was Created", HttpStatusCode.Created);
+    return result.ToHttpResultController();
+}
+```
+
+**Response JSON:**
+```json
+{
+  "succeeded": true,
+  "httpStatusCode": 201,
+  "data": "User was Created",
+  "problemDetails": null
+}
+```
+
+### ✅ Custom Success (Minimal Api)
+```csharp
+app.MapGet("/hello", () =>
+{
+    var result = ResultBuilder.Success("User was Created", HttpStatusCode.Created);
+    return result.ToHttpResultMinimal();
+}
+```
+
+**Response JSON:**
+```json
+{
+  "succeeded": true,
+  "httpStatusCode": 201,
+  "data": "User was Created",
+  "problemDetails": null
+}
+```
+
+---
+
+### ❌ Validation Failure (Controller)
 ```csharp
 [HttpPost("register")]
 public IActionResult RegisterUser(UserDto dto)
 {
-    var errors = new Dictionary<string, string[]>
-    {
-        { "Email", new[] { "Email is required." } },
-        { "Password", new[] { "Password must be at least 8 characters." } }
-    };
+    var result = ResultBuilder<string>.Failure()
+        .AddErrorExtensionsFromKeyValuePairs("Email", "Email is required.")
+        .AddErrorExtensionsFromKeyValuePairs("Password", new List<string> { "Password must be at least 8 characters." });
 
-    var result = ResultBuilder<string>.Failure(errors);
     return result.ToHttpResultController();
+}
+```
+
+**Response JSON:**
+```json
+{
+  "succeeded": false,
+  "httpStatusCode": 400,
+  "data": null,
+  "problemDetails": {
+    "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+    "title": "A problem occurred.",
+    "detail": "A problem occurred.",
+    "status": 400,
+    "extensions": {
+      "Email": ["Email is required."],
+      "Password": ["Password must be at least 8 characters."]
+    }
+  }
 }
 ```
 
@@ -65,113 +140,173 @@ public IActionResult RegisterUser(UserDto dto)
 
 ## 🌐 Minimal API Usage
 
-### ✅ Success Result
-
+### ✅ Success
 ```csharp
 app.MapGet("/status", () =>
 {
-    var result = ResultBuilder<string>.Success("Service is up");
+    var result = ResultBuilder<string>.Success("All systems operational.", HttpStatusCode.NoContent);
     return result.ToHttpResultMinimal();
 });
 ```
-
-### ❌ Failure Result
-
-```csharp
-app.MapPost("/login", (LoginRequest request) =>
+**Response JSON:**
+```json
 {
-    var errors = new Dictionary<string, string[]>
-    {
-        { "Username", new[] { "Username is required." } },
-        { "Password", new[] { "Password cannot be empty." } }
-    };
+  "succeeded": true,
+  "httpStatusCode": 204,
+  "data": "All systems operational.",
+  "problemDetails": null
+}
+```
 
-    var result = ResultBuilder<string>.Failure(errors);
+### ❌ FluentValidation Errors
+```csharp
+app.MapPost("/login", (LoginRequest request, IValidator<LoginRequest> validator) =>
+{
+    var validationResult = validator.Validate(request);
+
+    if(!validationResult.Succeeded)
+    {
+        var result = ResultBuilder<string>.Failure()
+            .AddErrorExtensionsFromFluentValidationResult(validationResult);
+    }
+    
     return result.ToHttpResultMinimal();
 });
 ```
 
 ---
 
-## ⚙️ ProblemDetails Customization
+## ⚙️ Custom ProblemDetails Examples
 
-You can attach detailed error metadata using the built-in helpers.
-
-### 🛠️ Attach Custom ProblemDetails
-
+### 🛠️ Attach Custom Metadata
 ```csharp
-var result = ResultBuilder<string>.Failure("Invalid input");
-result = result.WithDetailedProblemDetails(
-    type: "https://yourdomain.com/problems/validation",
-    title: "Validation Failed",
-    details: "One or more fields are invalid.",
-    statusCode: HttpStatusCode.UnprocessableEntity,
-    instance: "/api/register",
-    errors: new Dictionary<string, string[]>
-    {
-        { "username", new[] { "Username already exists." } }
-    });
+var result = ResultBuilder<string>.Failure()
+    .WithCustomProblemDetails(
+        type: "https://example.com/problems/validation",
+        title: "Validation Error",
+        details: "One or more validation failures occured.",
+        statusCode: HttpStatusCode.Conflict,
+        instance: "/api/register",
+        errors: new Dictionary<string, object?>
+        {
+            { "Username", new[] { "Username already exists." } }
+        });
+```
+Note: You can pass the httpContext to the above method so that "instance" is extracted automatically from it.
 
-return result.ToHttpResultController();
+**Response JSON:**
+```json
+{
+  "succeeded": false,
+  "httpStatusCode": 400,
+  "data": null,
+  "problemDetails": {
+    "type": "https://example.com/problems/validation",
+    "title": "Validation Error",
+    "detail": "One or more validation failures occured.",
+    "status": 409,
+    "instance": "/api/register",
+    "extensions": {
+      "Username": ["Username already exists."]
+    }
+  }
+}
 ```
 
 ---
 
-## 🔥 Exception Handling Example
+## 🧠 Validation Sources
 
-Gracefully wrap unhandled exceptions:
+### 🔧 DataAnnotations
+```csharp
+var validationResult = new ValidationResult("Email", new[] { "Invalid email" });
+var result = ResultBuilder.Failure()
+    .AddErrorExtensionsFromValidationResult(validationResult);
+```
 
+### 🧪 FluentValidation
+```csharp
+var result = ResultBuilder.Failure()
+    .AddErrorExtensionsFromFluentValidationResult(validationResult);
+```
+
+### 🔐 IdentityResult
+```csharp
+var result = ResultBuilder.Failure()
+    .AddErrorExtensionsFromIdentityError(identityResult);
+```
+
+---
+
+## 🔥 Exception Handling
 ```csharp
 try
 {
-    // Some logic that throws
+    throw new InvalidOperationException("Something broke.");
 }
 catch (Exception ex)
 {
     var result = ResultBuilder.Failure()
-        .WithExceptionProblemDetails(ex, httpContextAccessor);
+        .WithExceptionProblemDetails(ex, httpContext);
 
     return result.ToHttpResultController();
 }
 ```
 
+**Response JSON (truncated):**
+```json
+{
+  "succeeded": false,
+  "httpStatusCode": 500,
+  "data": null,
+  "problemDetails": {
+    "type": "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+    "title": "An exception was thrown.",
+    "detail": "Something broke.",
+    "status": 500,
+    "instance": "/api/failing-endpoint",
+    "extensions": {
+      "Message": ["Something broke."],
+      "Source": ["MyApp"]
+    }
+  }
+}
+```
+
 ---
 
-## 🧪 Tips for Best Use
+## 📚 Extension Reference
 
-- Use `.Success(data)` and `.Failure(errors)` for simple flows.
-- Customize `.WithDetailedProblemDetails(...)` for fine-grained error metadata.
-- Use `.WithExceptionProblemDetails(...)` to standardize error reporting for thrown exceptions.
-- Use `.ToHttpResultController()` and `.ToHttpResultMinimal()` based on your API style.
+| Method                                             | Description                                      |
+|----------------------------------------------------|--------------------------------------------------|
+| `WithSimpleProblemDetails()`                       | Attaches default problem info                   |
+| `WithCustomProblemDetails(...)`                    | Fully customized metadata                       |
+| `WithExceptionProblemDetails(...)`                 | Wraps exception details                         |
+| `AddErrorExtensionsFromKeyValuePairs(...)`         | Adds custom errors by key/value(s)              |
+| `AddErrorExtensionsFromFluentValidationResult(...)`| Maps FluentValidation errors                    |
+| `AddErrorExtensionsFromValidationResult(...)`      | Maps DataAnnotation errors                      |
+| `AddErrorExtensionsFromIdentityError(...)`         | Maps IdentityResult errors                      |
+| `AddProblemDetailsErrorExtensionsFromException(...)`| Adds public exception properties                |
 
 ---
 
-## 📚 API Response Pattern
+## 🧪 API Behavior Matrix
 
-| Scenario         | Method                        | Status Code | Description                          |
-|------------------|-------------------------------|-------------|--------------------------------------|
-| Success          | `ResultBuilder.Success(...)`  | 200 OK      | Standard successful result           |
-| Failure          | `ResultBuilder.Failure(...)`  | 400 Bad Request | Generic or validation failure    |
-| Exception        | `WithExceptionProblemDetails` | 500 Internal Server Error | Server-side error |
-| Custom Error     | `WithDetailedProblemDetails`  | Any         | Fully customized error response      |
+| Scenario         | Method                             | Status Code           | Description                            |
+|------------------|------------------------------------|------------------------|----------------------------------------|
+| Success          | `ResultBuilder.Success()`          | 200 OK                 | Standard success with optional data    |
+| Failure          | `ResultBuilder.Failure()`          | 400 Bad Request        | Generic or validation failure          |
+| Exception        | `.WithExceptionProblemDetails()`   | 500 Internal Server Error | Captures exception stack trace      |
+| Custom Error     | `.WithCustomProblemDetails(...)`   | Any                    | User-defined structured error response |
 
 ---
 
 ## 🤝 Contributing
-
-Contributions are welcome! Please open issues or submit pull requests on [GitHub](https://github.com/bonyadcode/Resulter).
-
----
+PRs and feedback welcome! [GitHub →](https://github.com/bonyadcode/Resulter)
 
 ## 📄 License
+Apache 2.0 — see the [LICENSE](LICENSE) file.
 
-APACHE License. See the [LICENSE](LICENSE) file for more details.
-
----
-
-## 🔗 Links
-
-- 📦 [NuGet Package](https://www.nuget.org/packages/BonyadCode.Resulter)
-- 💻 [GitHub Repository](https://github.com/bonyadcode/Resulter)
-
----
+## 📦 Links
+- [NuGet](https://www.nuget.org/packages/BonyadCode.Resulter)
+- [GitHub](https://github.com/bonyadcode/Resulter)

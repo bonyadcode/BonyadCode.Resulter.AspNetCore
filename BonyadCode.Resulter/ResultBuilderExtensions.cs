@@ -1,196 +1,315 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BonyadCode.Resulter;
 
 /// <summary>
-/// Extension methods for converting <see cref="ResultBuilder"/> instances into HTTP results
-/// for ASP.NET Core Controllers and Minimal APIs. Also provides ProblemDetails helpers.
+/// Extension methods for converting result objects to HTTP results,
+/// and attaching structured error metadata using ProblemDetails.
 /// </summary>
-public static class ResultBuilderExtensions
+public static partial class ResultBuilderExtensions
 {
-    #region Controllers
+    // ------------------
+    // Controller Support
+    // ------------------
 
     /// <summary>
-    /// Converts a non-generic <see cref="ResultBuilder"/> into an <see cref="IActionResult"/> for ASP.NET Core Controllers.
+    /// Converts a non-generic result to IActionResult for use in controllers.
     /// </summary>
-    /// <param name="result">The result builder instance.</param>
-    /// <returns>An <see cref="IActionResult"/> representing the result.</returns>
     public static IActionResult ToHttpResultController(this ResultBuilder result) =>
         result.ToHttpResultController<object?>();
 
     /// <summary>
-    /// Converts a generic <see cref="ResultBuilder{T}"/> into an <see cref="ObjectResult"/> for ASP.NET Core Controllers.
+    /// Converts a generic result to IActionResult for use in controllers.
     /// </summary>
-    /// <typeparam name="T">The type of the result data.</typeparam>
-    /// <param name="result">The result builder instance.</param>
-    /// <returns>An <see cref="ObjectResult"/> representing the result.</returns>
-    public static ObjectResult ToHttpResultController<T>(this ResultBuilder<T> result)
-    {
-        return result.Succeeded
-            ? new ObjectResult(result) { StatusCode = (int)(result.HttpStatusCode ?? HttpStatusCode.OK) }
-            : new ObjectResult(result) { StatusCode = (int)(result.HttpStatusCode ?? HttpStatusCode.BadRequest) };
-    }
+    public static ObjectResult ToHttpResultController<T>(this ResultBuilder<T> result) =>
+        new(result)
+        {
+            StatusCode = (int)(result.HttpStatusCode ??
+                               (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest))
+        };
 
-    #endregion
-
-    #region Minimal Api
+    // ------------------
+    // Minimal API Support
+    // ------------------
 
     /// <summary>
-    /// Converts a non-generic <see cref="ResultBuilder"/> into an <see cref="IResult"/> for Minimal APIs.
+    /// Converts a non-generic result to IResult for use in minimal APIs.
     /// </summary>
-    /// <param name="result">The result builder instance.</param>
-    /// <returns>An <see cref="IResult"/> representing the result.</returns>
     public static IResult ToHttpResultMinimal(this ResultBuilder result) =>
         result.ToHttpResultMinimal<object?>();
 
     /// <summary>
-    /// Converts a generic <see cref="ResultBuilder{T}"/> into an <see cref="IResult"/> for Minimal APIs.
+    /// Converts a generic result to IResult for use in minimal APIs.
     /// </summary>
-    /// <typeparam name="T">The type of the result data.</typeparam>
-    /// <param name="result">The result builder instance.</param>
-    /// <returns>An <see cref="IResult"/> representing the result.</returns>
-    public static IResult ToHttpResultMinimal<T>(this ResultBuilder<T> result)
-    {
-        return result.Succeeded
-            ? Results.Json(result, new JsonSerializerOptions(JsonSerializerDefaults.Web), "application/json",
-                (int)(result.HttpStatusCode ?? HttpStatusCode.OK))
-            : Results.Json(result, new JsonSerializerOptions(JsonSerializerDefaults.Web), "application/json",
-                (int)(result.HttpStatusCode ?? HttpStatusCode.BadRequest));
-    }
-
-    #endregion
-
-    #region Problem Details
+    public static IResult ToHttpResultMinimal<T>(this ResultBuilder<T> result) =>
+        Results.Json(result,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web),
+            contentType: "application/json",
+            statusCode: (int)(result.HttpStatusCode ??
+                              (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest)));
 
     /// <summary>
-    /// Attaches an empty <see cref="ProblemDetails"/> to a non-generic <see cref="ResultBuilder"/>.
+    /// Converts a generic result to a non-generic version.
     /// </summary>
-    public static ResultBuilder WithEmptyProblemDetails(this ResultBuilder result) =>
-        result.WithEmptyProblemDetails<object?>()
-            .ToVoidResultBuilder();
+    private static ResultBuilder ToVoidResultBuilder<T>(this ResultBuilder<T> result) =>
+        ResultBuilder.Create(result.Succeeded, result.HttpStatusCode, result.Data, result.ProblemDetails);
+}
+
+public static partial class ResultBuilderExtensions
+{
+    // ------------------
+    // ProblemDetails Helpers
+    // ------------------
 
     /// <summary>
-    /// Attaches an empty <see cref="ProblemDetails"/> to a generic <see cref="ResultBuilder{T}"/>.
+    /// Adds a basic ProblemDetails object to a result.
     /// </summary>
-    public static ResultBuilder<T> WithEmptyProblemDetails<T>(this ResultBuilder<T> result)
+    public static ResultBuilder WithSimpleProblemDetails(this ResultBuilder result) =>
+        result.WithSimpleProblemDetails<object?>().ToVoidResultBuilder();
+
+    /// <summary>
+    /// Adds a basic ProblemDetails object to a generic result.
+    /// </summary>
+    public static ResultBuilder<T> WithSimpleProblemDetails<T>(this ResultBuilder<T> result)
     {
         result.ProblemDetails = new ProblemDetails
         {
             Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            Title = "A problem occured.",
-            Detail = "A problem occured.",
+            Title = "A problem occurred.",
+            Detail = "A problem occurred.",
             Status = (int)HttpStatusCode.BadRequest,
-            Instance = null,
-            Extensions = new Dictionary<string, object?>(),
+            Extensions = new Dictionary<string, object?>()
         };
-
         return result;
     }
 
     /// <summary>
-    /// Attaches custom <see cref="ProblemDetails"/> to a non-generic <see cref="ResultBuilder"/>.
+    /// Adds a customized ProblemDetails object to a result.
     /// </summary>
-    public static ResultBuilder WithDetailedProblemDetails(this ResultBuilder result,
+    public static ResultBuilder WithCustomProblemDetails(this ResultBuilder result,
         string? type,
         string? title,
         string? details,
         HttpStatusCode? statusCode,
         string? instance,
-        Dictionary<string, string[]>? errors,
-        IHttpContextAccessor? httpContext = null) =>
-        result.WithDetailedProblemDetails<object?>(type, title, details, statusCode, instance, errors, httpContext)
+        Dictionary<string, object?>? errors,
+        HttpContext? httpContext = null) =>
+        result.WithCustomProblemDetails<object?>(type, title, details, statusCode, instance, errors, httpContext)
             .ToVoidResultBuilder();
 
     /// <summary>
-    /// Attaches custom <see cref="ProblemDetails"/> to a generic <see cref="ResultBuilder{T}"/>.
+    /// Adds a customized ProblemDetails object to a generic result.
     /// </summary>
-    public static ResultBuilder<T> WithDetailedProblemDetails<T>(this ResultBuilder<T> result,
+    public static ResultBuilder<T> WithCustomProblemDetails<T>(this ResultBuilder<T> result,
         string? type,
         string? title,
         string? details,
         HttpStatusCode? statusCode,
         string? instance,
-        Dictionary<string, string[]>? errors,
-        IHttpContextAccessor? httpContext = null)
+        Dictionary<string, object?>? errors,
+        HttpContext? httpContext = null)
     {
         result.ProblemDetails = new ProblemDetails
         {
             Type = type ?? "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            Title = title ?? "A problem occured.",
-            Detail = details ?? "A problem occured.",
+            Title = title ?? "A problem occurred.",
+            Detail = details ?? "A problem occurred.",
             Status = (int)(statusCode ?? HttpStatusCode.BadRequest),
-            Instance = instance ?? httpContext?.HttpContext?.Request.Path,
-            Extensions = errors?.ToDictionary(kvp => kvp.Key, object (kvp) => kvp.Value)!,
+            Instance = instance ?? httpContext?.Request.Path,
+            Extensions = errors ?? new()
         };
-
         return result;
     }
 
     /// <summary>
-    /// Adds additional error key-value pairs to the <see cref="ProblemDetails.Extensions"/>.
+    /// Adds exception information to ProblemDetails.
     /// </summary>
-    public static ResultBuilder AddErrorExtensionsToProblemDetails(this ResultBuilder result,
-        Dictionary<string, string[]> errors) =>
-        result.AddErrorExtensionsToProblemDetails<object?>(errors)
+    public static ResultBuilder WithExceptionProblemDetails(this ResultBuilder result,
+        Exception ex,
+        HttpContext? httpContext = null) =>
+        result.WithExceptionProblemDetails<object?>(ex, httpContext)
             .ToVoidResultBuilder();
 
     /// <summary>
-    /// Adds additional error key-value pairs to the <see cref="ProblemDetails.Extensions"/>.
+    /// Adds exception information to a generic result's ProblemDetails.
     /// </summary>
-    public static ResultBuilder<T> AddErrorExtensionsToProblemDetails<T>(this ResultBuilder<T> result,
-        Dictionary<string, string[]> errors)
+    public static ResultBuilder<T> WithExceptionProblemDetails<T>(this ResultBuilder<T> result,
+        Exception ex,
+        HttpContext? httpContext = null)
     {
-        if (result.ProblemDetails == null) result.ProblemDetails = result.WithEmptyProblemDetails().ProblemDetails;
-        foreach (var error in errors)
+        result = result.WithSimpleProblemDetails();
+        foreach (var prop in ex.GetType().GetProperties())
         {
-            result.ProblemDetails?.Extensions.Add(error.Key, error.Value);
+            var value = prop.GetValue(ex)?.ToString();
+            if (value != null)
+                result.ProblemDetails?.Extensions.Add(prop.Name, value);
+        }
+
+        result.ProblemDetails!.Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1";
+        result.ProblemDetails.Title = "An exception was thrown.";
+        result.ProblemDetails.Detail = ex.Message;
+        result.ProblemDetails.Status = (int)HttpStatusCode.InternalServerError;
+        result.ProblemDetails.Instance = httpContext?.Request.Path ?? ex.Source;
+        return result;
+    }
+}
+
+public static partial class ResultBuilderExtensions
+{
+    // ------------------
+    // Error Extension Helpers
+    // ------------------
+
+    /// <summary>
+    /// Adds validation error information using a single key and multiple values.
+    /// </summary>
+    public static ResultBuilder AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, string key,
+        IList<string> valueList) =>
+        result.AddErrorExtensionsFromKeyValuePairs<object?>(key, valueList).ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result, string key,
+        IList<string> valueList)
+    {
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        result.ProblemDetails?.Extensions.Add(key, valueList.ToArray());
+        return result;
+    }
+
+    /// <summary>
+    /// Adds a single key-value pair as error detail.
+    /// </summary>
+    public static ResultBuilder
+        AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, string key, string value) =>
+        result.AddErrorExtensionsFromKeyValuePairs<object?>(key, value).ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result, string key,
+        string value)
+    {
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        result.ProblemDetails?.Extensions.Add(key, new[] { value });
+        return result;
+    }
+
+    /// <summary>
+    /// Adds multiple keys sharing the same value.
+    /// </summary>
+    public static ResultBuilder AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, IList<string> keys,
+        string value) =>
+        result.AddErrorExtensionsFromKeyValuePairs<object?>(keys, value).ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result,
+        IList<string> keys, string value)
+    {
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        foreach (var key in keys)
+            result.ProblemDetails?.Extensions.Add(key, new[] { value });
+        return result;
+    }
+
+    /// <summary>
+    /// Maps each key to a corresponding value.
+    /// </summary>
+    public static ResultBuilder AddErrorExtensionsFromKeyValuePairs(this ResultBuilder result, IList<string> keys,
+        IList<string> values) =>
+        result.AddErrorExtensionsFromKeyValuePairs<object?>(keys, values).ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromKeyValuePairs<T>(this ResultBuilder<T> result,
+        IList<string> keys, IList<string> values)
+    {
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        for (int i = 0; i < keys.Count; i++)
+            result.ProblemDetails?.Extensions.Add(keys[i], new[] { values[i] });
+        return result;
+    }
+
+    /// <summary>
+    /// Adds IdentityResult errors to the ProblemDetails extensions.
+    /// </summary>
+    public static ResultBuilder AddErrorExtensionsFromIdentityError(this ResultBuilder result,
+        IdentityResult identityResult) =>
+        result.AddErrorExtensionsFromIdentityError<object?>(identityResult).ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromIdentityError<T>(this ResultBuilder<T> result,
+        IdentityResult identityResult)
+    {
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        foreach (var error in identityResult.Errors)
+            result.ProblemDetails?.Extensions.Add(error.Code, new[] { error.Description });
+        return result;
+    }
+
+    /// <summary>
+    /// Adds FluentValidation results to the ProblemDetails extensions.
+    /// </summary>
+    public static ResultBuilder AddErrorExtensionsFromFluentValidationResult(this ResultBuilder result,
+        FluentValidation.Results.ValidationResult validationResult) =>
+        result.AddErrorExtensionsFromFluentValidationResult<object?>(validationResult)
+            .ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromFluentValidationResult<T>(
+        this ResultBuilder<T> result, FluentValidation.Results.ValidationResult validationResult)
+    {
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        foreach (var error in validationResult.Errors)
+        {
+            var key = error.PropertyName.Contains('.')
+                ? error.PropertyName.Split('.').Last()
+                : error.PropertyName;
+            result.ProblemDetails?.Extensions.Add(key, new[] { error.ErrorMessage });
         }
 
         return result;
     }
 
     /// <summary>
-    /// Attaches <see cref="ProblemDetails"/> to the result using exception details.
+    /// Adds DataAnnotations validation error.
     /// </summary>
-    public static ResultBuilder WithExceptionProblemDetails(this ResultBuilder result,
-        Exception ex,
-        IHttpContextAccessor? httpContext = null) =>
-        result.WithExceptionProblemDetails<object?>(ex, httpContext)
-            .ToVoidResultBuilder();
+    public static ResultBuilder AddErrorExtensionsFromValidationResult(this ResultBuilder result,
+        System.ComponentModel.DataAnnotations.ValidationResult validationResult) =>
+        result.AddErrorExtensionsFromValidationResult<object?>(validationResult).ToVoidResultBuilder();
 
-    /// <summary>
-    /// Attaches <see cref="ProblemDetails"/> to the result using exception details.
-    /// </summary>
-    public static ResultBuilder<T> WithExceptionProblemDetails<T>(this ResultBuilder<T> result,
-        Exception ex,
-        IHttpContextAccessor? httpContext = null)
+    public static ResultBuilder<T> AddErrorExtensionsFromValidationResult<T>(this ResultBuilder<T> result,
+        System.ComponentModel.DataAnnotations.ValidationResult validationResult)
     {
-        var errors = ErrorDictionaryHelper.ExceptionError(ex);
-        result.ProblemDetails = new ProblemDetails
-        {
-            Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
-            Title = "An exception problem occured.",
-            Detail = ex.Message,
-            Status = (int)HttpStatusCode.InternalServerError,
-            Instance = ex.Source ?? httpContext?.HttpContext?.Request.Path,
-            Extensions = errors.ToDictionary(kvp => kvp.Key, object (kvp) => kvp.Value)!,
-        };
-
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        var key = validationResult.ErrorMessage ?? "Validation Error";
+        result.ProblemDetails?.Extensions.Add(key, validationResult.MemberNames.ToArray());
         return result;
     }
 
-    #endregion
+    /// <summary>
+    /// Adds a list of invalid values for a specific property.
+    /// </summary>
+    public static ResultBuilder AddErrorExtensionsFromValidationError(this ResultBuilder result,
+        string property, IList<string> values) =>
+        result.AddErrorExtensionsFromValidationError<object?>(property, values).ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromValidationError<T>(this ResultBuilder<T> result,
+        string property, IList<string> values)
+    {
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        result.ProblemDetails?.Extensions.Add(property, values.ToArray());
+        return result;
+    }
 
     /// <summary>
-    /// Converts a generic <see cref="ResultBuilder{T}"/> to a non-generic <see cref="ResultBuilder"/>.
+    /// Adds all public properties of an exception as ProblemDetails extensions.
     /// </summary>
-    private static ResultBuilder ToVoidResultBuilder<T>(this ResultBuilder<T> result)
+    public static ResultBuilder
+        AddErrorExtensionsFromException(this ResultBuilder result, Exception ex) =>
+        result.AddErrorExtensionsFromException<object?>(ex).ToVoidResultBuilder();
+
+    public static ResultBuilder<T> AddErrorExtensionsFromException<T>(this ResultBuilder<T> result,
+        Exception ex)
     {
-        var voidResultBuilder =
-            ResultBuilder.Create(result.Succeeded, result.HttpStatusCode, result.Data, result.ProblemDetails);
-        return voidResultBuilder;
+        result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
+        foreach (var property in ex.GetType().GetProperties())
+            result.ProblemDetails?.Extensions.Add(property.Name,
+                new[] { property.GetValue(ex)?.ToString() ?? string.Empty });
+        return result;
     }
 }
