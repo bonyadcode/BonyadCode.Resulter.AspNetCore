@@ -10,7 +10,7 @@ namespace BonyadCode.Resulter;
 /// <typeparam name="T">The type of the result data.</typeparam>
 public class ResultBuilder<T>(
     bool succeeded,
-    HttpStatusCode? httpStatusCode,
+    HttpStatusCode? statusCode,
     T? data = default,
     ProblemDetails? problemDetails = null)
 {
@@ -23,7 +23,7 @@ public class ResultBuilder<T>(
     /// The HTTP status code associated with the result.
     /// Defaults based on success/failure if not explicitly set.
     /// </summary>
-    public HttpStatusCode? HttpStatusCode { get; set; } = httpStatusCode;
+    public HttpStatusCode? StatusCode { get; set; } = statusCode;
 
     /// <summary>
     /// The result data returned from the operation, if any.
@@ -51,9 +51,9 @@ public class ResultBuilder<T>(
         ProblemDetails? problemDetails = null)
     {
         var result = new ResultBuilder<T>(succeeded, statusCode, data, problemDetails);
-        result.HttpStatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 200);
-        if (problemDetails != null) problemDetails.Status ??= (int)result.HttpStatusCode;
-        result.HttpStatusCode ??= System.Net.HttpStatusCode.OK;
+        result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 200);
+        if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
+        result.StatusCode ??= System.Net.HttpStatusCode.OK;
         return result;
     }
 
@@ -76,9 +76,9 @@ public class ResultBuilder<T>(
     {
         var result = new ResultBuilder<T>(false, statusCode, default, problemDetails)
             .WithSimpleProblemDetails();
-        result.HttpStatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 400);
-        if (problemDetails != null) problemDetails.Status ??= (int)result.HttpStatusCode;
-        result.HttpStatusCode ??= System.Net.HttpStatusCode.BadRequest;
+        result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 400);
+        if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
+        result.StatusCode ??= System.Net.HttpStatusCode.BadRequest;
         return result;
     }
 }
@@ -90,10 +90,10 @@ public class ResultBuilder : ResultBuilder<object?>
 {
     private ResultBuilder(
         bool succeeded,
-        HttpStatusCode? httpStatusCode,
+        HttpStatusCode? statusCode,
         object? data = null,
         ProblemDetails? problemDetails = null)
-        : base(succeeded, httpStatusCode, data, problemDetails) { }
+        : base(succeeded, statusCode, data, problemDetails) { }
 
     /// <summary>
     /// Creates a result indicating success or failure.
@@ -105,9 +105,9 @@ public class ResultBuilder : ResultBuilder<object?>
         ProblemDetails? problemDetails = null)
     {
         var result = new ResultBuilder(succeeded, statusCode, data, problemDetails);
-        result.HttpStatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 200);
-        if (problemDetails != null) problemDetails.Status ??= (int)result.HttpStatusCode;
-        result.HttpStatusCode ??= System.Net.HttpStatusCode.OK;
+        result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 200);
+        if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
+        result.StatusCode ??= System.Net.HttpStatusCode.OK;
         return result;
     }
 
@@ -128,9 +128,9 @@ public class ResultBuilder : ResultBuilder<object?>
     {
         var result = new ResultBuilder(false, statusCode, null, problemDetails)
             .WithSimpleProblemDetails();
-        result.HttpStatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 400);
-        if (problemDetails != null) problemDetails.Status ??= (int)result.HttpStatusCode;
-        result.HttpStatusCode ??= System.Net.HttpStatusCode.BadRequest;
+        result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 400);
+        if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
+        result.StatusCode ??= System.Net.HttpStatusCode.BadRequest;
         return result;
     }
 }

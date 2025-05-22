@@ -29,7 +29,7 @@ public static partial class ResultBuilderExtensions
     public static ObjectResult ToHttpResultController<T>(this ResultBuilder<T> result) =>
         new(result)
         {
-            StatusCode = (int)(result.HttpStatusCode ??
+            StatusCode = (int)(result.StatusCode ??
                                (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest))
         };
 
@@ -50,14 +50,14 @@ public static partial class ResultBuilderExtensions
         Results.Json(result,
             new JsonSerializerOptions(JsonSerializerDefaults.Web),
             contentType: "application/json",
-            statusCode: (int)(result.HttpStatusCode ??
+            statusCode: (int)(result.StatusCode ??
                               (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest)));
 
     /// <summary>
     /// Converts a generic result to a non-generic version.
     /// </summary>
     private static ResultBuilder ToVoidResultBuilder<T>(this ResultBuilder<T> result) =>
-        ResultBuilder.Create(result.Succeeded, result.HttpStatusCode, result.Data, result.ProblemDetails);
+        ResultBuilder.Create(result.Succeeded, result.StatusCode, result.Data, result.ProblemDetails);
 }
 
 public static partial class ResultBuilderExtensions

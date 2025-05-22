@@ -37,7 +37,7 @@ public IActionResult GetHello()
 ```json
 {
   "succeeded": true,
-  "httpStatusCode": 200,
+  "statusCode": 200,
   "data": "Hello, world!",
   "problemDetails": null
 }
@@ -57,7 +57,7 @@ public IActionResult GetHello()
 ```json
 {
   "succeeded": true,
-  "httpStatusCode": 200,
+  "statusCode": 200,
   "data": "Hello, world!",
   "problemDetails": null
 }
@@ -77,7 +77,7 @@ public IActionResult GetHello()
 ```json
 {
   "succeeded": true,
-  "httpStatusCode": 201,
+  "statusCode": 201,
   "data": "User was Created",
   "problemDetails": null
 }
@@ -96,7 +96,7 @@ app.MapGet("/hello", () =>
 ```json
 {
   "succeeded": true,
-  "httpStatusCode": 201,
+  "statusCode": 201,
   "data": "User was Created",
   "problemDetails": null
 }
@@ -110,8 +110,8 @@ app.MapGet("/hello", () =>
 public IActionResult RegisterUser(UserDto dto)
 {
     var result = ResultBuilder<string>.Failure()
-        .AddErrorExtensionsFromKeyValuePairs("Email", "Email is required.")
-        .AddErrorExtensionsFromKeyValuePairs("Password", new List<string> { "Password must be at least 8 characters." });
+        .AddErrorsFromKeyValuePairs("Email", "Email is required.")
+        .AddErrorsFromKeyValuePairs("Password", new List<string> { "Password must be at least 8 characters." });
 
     return result.ToHttpResultController();
 }
@@ -121,7 +121,7 @@ public IActionResult RegisterUser(UserDto dto)
 ```json
 {
   "succeeded": false,
-  "httpStatusCode": 400,
+  "statusCode": 400,
   "data": null,
   "problemDetails": {
     "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
@@ -152,7 +152,7 @@ app.MapGet("/status", () =>
 ```json
 {
   "succeeded": true,
-  "httpStatusCode": 204,
+  "statusCode": 204,
   "data": "All systems operational.",
   "problemDetails": null
 }
@@ -167,7 +167,7 @@ app.MapPost("/login", (LoginRequest request, IValidator<LoginRequest> validator)
     if(!validationResult.Succeeded)
     {
         var result = ResultBuilder<string>.Failure()
-            .AddErrorExtensionsFromFluentValidationResult(validationResult);
+            .AddErrorsFromFluentValidationResult(validationResult);
     }
     
     return result.ToHttpResultMinimal();
@@ -198,7 +198,7 @@ Note: You can pass the httpContext to the above method so that "instance" is ext
 ```json
 {
   "succeeded": false,
-  "httpStatusCode": 400,
+  "statusCode": 400,
   "data": null,
   "problemDetails": {
     "type": "https://example.com/problems/validation",
@@ -221,19 +221,19 @@ Note: You can pass the httpContext to the above method so that "instance" is ext
 ```csharp
 var validationResult = new ValidationResult("Email", new[] { "Invalid email" });
 var result = ResultBuilder.Failure()
-    .AddErrorExtensionsFromValidationResult(validationResult);
+    .AddErrorsFromValidationResult(validationResult);
 ```
 
 ### 🧪 FluentValidation
 ```csharp
 var result = ResultBuilder.Failure()
-    .AddErrorExtensionsFromFluentValidationResult(validationResult);
+    .AddErrorsFromFluentValidationResult(validationResult);
 ```
 
 ### 🔐 IdentityResult
 ```csharp
 var result = ResultBuilder.Failure()
-    .AddErrorExtensionsFromIdentityError(identityResult);
+    .AddErrorsFromIdentityError(identityResult);
 ```
 
 ---
@@ -257,7 +257,7 @@ catch (Exception ex)
 ```json
 {
   "succeeded": false,
-  "httpStatusCode": 500,
+  "statusCode": 500,
   "data": null,
   "problemDetails": {
     "type": "https://tools.ietf.org/html/rfc7231#section-6.6.1",
@@ -282,10 +282,10 @@ catch (Exception ex)
 | `WithSimpleProblemDetails()`                       | Attaches default problem info                   |
 | `WithCustomProblemDetails(...)`                    | Fully customized metadata                       |
 | `WithExceptionProblemDetails(...)`                 | Wraps exception details                         |
-| `AddErrorExtensionsFromKeyValuePairs(...)`         | Adds custom errors by key/value(s)              |
-| `AddErrorExtensionsFromFluentValidationResult(...)`| Maps FluentValidation errors                    |
-| `AddErrorExtensionsFromValidationResult(...)`      | Maps DataAnnotation errors                      |
-| `AddErrorExtensionsFromIdentityError(...)`         | Maps IdentityResult errors                      |
+| `AddErrorsFromKeyValuePairs(...)`         | Adds custom errors by key/value(s)              |
+| `AddErrorsFromFluentValidationResult(...)`| Maps FluentValidation errors                    |
+| `AddErrorsFromValidationResult(...)`      | Maps DataAnnotation errors                      |
+| `AddErrorsFromIdentityError(...)`         | Maps IdentityResult errors                      |
 | `AddProblemDetailsErrorExtensionsFromException(...)`| Adds public exception properties                |
 
 ---
