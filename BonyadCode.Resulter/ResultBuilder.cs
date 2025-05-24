@@ -1,5 +1,5 @@
-using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace BonyadCode.Resulter;
 

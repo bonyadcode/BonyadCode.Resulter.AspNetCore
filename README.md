@@ -1,4 +1,4 @@
-# BonyadCode.Resulter
+# BonyadCode.Resulter.AspNetCore
 
 A robust utility library to standardize API responses in ASP.NET Core. Supports both Controllers and Minimal APIs with unified handling of success, failure, validation errors, and exceptions — using rich `ProblemDetails` in accordance with `RFC7807` and `RFC9457` standards.
 
@@ -16,7 +16,7 @@ A robust utility library to standardize API responses in ASP.NET Core. Supports 
 ## 📦 Installation
 
 ```bash
-dotnet add package BonyadCode.Resulter
+dotnet add package BonyadCode.Resulter.AspNetCore
 ```
 
 ---
@@ -302,11 +302,11 @@ catch (Exception ex)
 ---
 
 ## 🤝 Contributing
-PRs and feedback welcome! [GitHub →](https://github.com/bonyadcode/Resulter)
+PRs and feedback welcome! [GitHub →](https://github.com/bonyadcode/Resulter.AspNetCore)
 
 ## 📄 License
 Apache 2.0 — see the [LICENSE](LICENSE) file.
 
 ## 📦 Links
-- [NuGet](https://www.nuget.org/packages/BonyadCode.Resulter)
-- [GitHub](https://github.com/bonyadcode/Resulter)
+- [NuGet](https://www.nuget.org/packages/BonyadCode.Resulter.AspNetCore)
+- [GitHub](https://github.com/bonyadcode/Resulter.AspNetCore)
