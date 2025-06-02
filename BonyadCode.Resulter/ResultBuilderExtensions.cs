@@ -22,7 +22,10 @@ public static partial class ResultBuilderExtensions
     /// </summary>
     public static IActionResult ToHttpResultController(this ResultBuilder result) =>
         result.ToHttpResultController<object?>();
-
+    
+    public static IActionResult ToHttpResultController(this ResultBuilder result, HttpStatusCode? statusCode) =>
+        result.ToHttpResultController<object?>(statusCode);
+    
     /// <summary>
     /// Converts a generic result to IActionResult for use in controllers.
     /// </summary>
@@ -30,6 +33,13 @@ public static partial class ResultBuilderExtensions
         new(result)
         {
             StatusCode = (int)(result.StatusCode ??
+                               (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest))
+        };
+    
+    public static ObjectResult ToHttpResultController<T>(this ResultBuilder<T> result, HttpStatusCode? statusCode) =>
+        new(result)
+        {
+            StatusCode = (int)(statusCode ?? result.StatusCode ??
                                (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest))
         };
 
@@ -43,6 +53,9 @@ public static partial class ResultBuilderExtensions
     public static IResult ToHttpResultMinimal(this ResultBuilder result) =>
         result.ToHttpResultMinimal<object?>();
 
+    public static IResult ToHttpResultMinimal(this ResultBuilder result, HttpStatusCode? statusCode) =>
+        result.ToHttpResultMinimal<object?>(statusCode);
+    
     /// <summary>
     /// Converts a generic result to IResult for use in minimal APIs.
     /// </summary>
@@ -53,6 +66,13 @@ public static partial class ResultBuilderExtensions
             statusCode: (int)(result.StatusCode ??
                               (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest)));
 
+    public static IResult ToHttpResultMinimal<T>(this ResultBuilder<T> result, HttpStatusCode? statusCode) =>
+        Results.Json(result,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web),
+            contentType: "application/json",
+            statusCode: (int)(statusCode ?? result.StatusCode ??
+                              (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest)));
+    
     /// <summary>
     /// Converts a generic result to a non-generic version.
     /// </summary>
@@ -147,7 +167,7 @@ public static partial class ResultBuilderExtensions
         {
             var value = prop.GetValue(ex)?.ToString();
             if (value != null)
-                result.ProblemDetails?.Extensions.Add(prop.Name, value);
+                result.ProblemDetails?.Extensions.TryAdd(prop.Name, value);
         }
 
         result.ProblemDetails!.Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1";
@@ -176,7 +196,7 @@ public static partial class ResultBuilderExtensions
         IList<string> valueList)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
-        result.ProblemDetails?.Extensions.Add(key, valueList.ToArray());
+        result.ProblemDetails?.Extensions.TryAdd(key, valueList.ToArray());
         return result;
     }
 
@@ -191,7 +211,7 @@ public static partial class ResultBuilderExtensions
         string value)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
-        result.ProblemDetails?.Extensions.Add(key, new[] { value });
+        result.ProblemDetails?.Extensions.TryAdd(key, new[] { value });
         return result;
     }
 
@@ -207,12 +227,12 @@ public static partial class ResultBuilderExtensions
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
         foreach (var key in keys)
-            result.ProblemDetails?.Extensions.Add(key, new[] { value });
+            result.ProblemDetails?.Extensions.TryAdd(key, new[] { value });
         return result;
     }
 
     /// <summary>
-    /// Maps each key to a corresponding value.
+    /// Adds multiple error key-value pairs to ProblemDetails.Extensions, where each key at index `i` is mapped to the value at index `i`.
     /// </summary>
     public static ResultBuilder AddErrorsFromKeyValuePairs(this ResultBuilder result, IList<string> keys,
         IList<string> values) =>
@@ -223,7 +243,7 @@ public static partial class ResultBuilderExtensions
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
         for (int i = 0; i < keys.Count; i++)
-            result.ProblemDetails?.Extensions.Add(keys[i], new[] { values[i] });
+            result.ProblemDetails?.Extensions.TryAdd(keys[i], new[] { values[i] });
         return result;
     }
 
@@ -239,12 +259,13 @@ public static partial class ResultBuilderExtensions
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
         foreach (var error in identityResult.Errors)
-            result.ProblemDetails?.Extensions.Add(error.Code, new[] { error.Description });
+            result.ProblemDetails?.Extensions.TryAdd(error.Code, new[] { error.Description });
         return result;
     }
 
     /// <summary>
     /// Adds FluentValidation results to the ProblemDetails extensions.
+    /// using property names as keys and error messages as values.
     /// </summary>
     public static ResultBuilder AddErrorsFromFluentValidationResult(this ResultBuilder result,
         FluentValidation.Results.ValidationResult validationResult) =>
@@ -260,7 +281,7 @@ public static partial class ResultBuilderExtensions
             var key = error.PropertyName.Contains('.')
                 ? error.PropertyName.Split('.').Last()
                 : error.PropertyName;
-            result.ProblemDetails?.Extensions.Add(key, new[] { error.ErrorMessage });
+            result.ProblemDetails?.Extensions.TryAdd(key, new[] { error.ErrorMessage });
         }
 
         return result;
@@ -278,7 +299,7 @@ public static partial class ResultBuilderExtensions
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
         var key = validationResult.ErrorMessage ?? "Validation Error";
-        result.ProblemDetails?.Extensions.Add(key, validationResult.MemberNames.ToArray());
+        result.ProblemDetails?.Extensions.TryAdd(key, validationResult.MemberNames.ToArray());
         return result;
     }
 
@@ -293,7 +314,7 @@ public static partial class ResultBuilderExtensions
         string property, IList<string> values)
     {
         result = result.ProblemDetails == null ? result.WithSimpleProblemDetails() : result;
-        result.ProblemDetails?.Extensions.Add(property, values.ToArray());
+        result.ProblemDetails?.Extensions.TryAdd(property, values.ToArray());
         return result;
     }
 
@@ -309,7 +330,7 @@ public static partial class ResultBuilderExtensions
     {
         result = result.WithExceptionProblemDetails(ex);
         foreach (var property in ex.GetType().GetProperties())
-            result.ProblemDetails?.Extensions.Add(property.Name,
+            result.ProblemDetails?.Extensions.TryAdd(property.Name,
                 new[] { property.GetValue(ex)?.ToString() ?? string.Empty });
         return result;
     }

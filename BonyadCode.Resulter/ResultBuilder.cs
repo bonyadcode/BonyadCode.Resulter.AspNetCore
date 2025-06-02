@@ -53,7 +53,7 @@ public class ResultBuilder<T>(
         var result = new ResultBuilder<T>(succeeded, statusCode, data, problemDetails);
         result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 200);
         if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
-        result.StatusCode ??= System.Net.HttpStatusCode.OK;
+        result.StatusCode ??= HttpStatusCode.OK;
         return result;
     }
 
@@ -62,7 +62,7 @@ public class ResultBuilder<T>(
     /// </summary>
     public static ResultBuilder<T> Success(
         T? data,
-        HttpStatusCode? statusCode = System.Net.HttpStatusCode.OK)
+        HttpStatusCode? statusCode = HttpStatusCode.OK)
     {
         return new ResultBuilder<T>(true, statusCode, data);
     }
@@ -72,13 +72,13 @@ public class ResultBuilder<T>(
     /// </summary>
     public static ResultBuilder<T> Failure(
         ProblemDetails? problemDetails = null,
-        HttpStatusCode? statusCode = System.Net.HttpStatusCode.BadRequest)
+        HttpStatusCode? statusCode = HttpStatusCode.BadRequest)
     {
         var result = new ResultBuilder<T>(false, statusCode, default, problemDetails)
             .WithSimpleProblemDetails();
         result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 400);
         if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
-        result.StatusCode ??= System.Net.HttpStatusCode.BadRequest;
+        result.StatusCode ??= HttpStatusCode.BadRequest;
         return result;
     }
 }
@@ -107,7 +107,7 @@ public class ResultBuilder : ResultBuilder<object?>
         var result = new ResultBuilder(succeeded, statusCode, data, problemDetails);
         result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 200);
         if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
-        result.StatusCode ??= System.Net.HttpStatusCode.OK;
+        result.StatusCode ??= HttpStatusCode.OK;
         return result;
     }
 
@@ -124,13 +124,13 @@ public class ResultBuilder : ResultBuilder<object?>
     /// </summary>
     public new static ResultBuilder Failure(
         ProblemDetails? problemDetails = null,
-        HttpStatusCode? statusCode = System.Net.HttpStatusCode.BadRequest)
+        HttpStatusCode? statusCode = HttpStatusCode.BadRequest)
     {
         var result = new ResultBuilder(false, statusCode, null, problemDetails)
             .WithSimpleProblemDetails();
         result.StatusCode ??= (HttpStatusCode)(problemDetails?.Status ?? 400);
         if (problemDetails != null) problemDetails.Status ??= (int)result.StatusCode;
-        result.StatusCode ??= System.Net.HttpStatusCode.BadRequest;
+        result.StatusCode ??= HttpStatusCode.BadRequest;
         return result;
     }
 }
