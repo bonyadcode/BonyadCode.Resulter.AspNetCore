@@ -22,10 +22,10 @@ public static partial class ResultBuilderExtensions
     /// </summary>
     public static IActionResult ToHttpResultController(this ResultBuilder result) =>
         result.ToHttpResultController<object?>();
-    
+
     public static IActionResult ToHttpResultController(this ResultBuilder result, HttpStatusCode? statusCode) =>
         result.ToHttpResultController<object?>(statusCode);
-    
+
     /// <summary>
     /// Converts a generic result to IActionResult for use in controllers.
     /// </summary>
@@ -35,13 +35,21 @@ public static partial class ResultBuilderExtensions
             StatusCode = (int)(result.StatusCode ??
                                (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest))
         };
-    
-    public static ObjectResult ToHttpResultController<T>(this ResultBuilder<T> result, HttpStatusCode? statusCode) =>
-        new(result)
+
+    public static ObjectResult ToHttpResultController<T>(this ResultBuilder<T> result, HttpStatusCode? statusCode)
+    {
+        if (statusCode != null)
+        {
+            result.StatusCode = statusCode;
+            if (result.ProblemDetails != null) result.ProblemDetails.Status = (int)statusCode;
+        }
+
+        return new ObjectResult(result)
         {
             StatusCode = (int)(statusCode ?? result.StatusCode ??
-                               (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest))
+                (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest))
         };
+    }
 
     // ------------------
     // Minimal API Support
@@ -55,7 +63,7 @@ public static partial class ResultBuilderExtensions
 
     public static IResult ToHttpResultMinimal(this ResultBuilder result, HttpStatusCode? statusCode) =>
         result.ToHttpResultMinimal<object?>(statusCode);
-    
+
     /// <summary>
     /// Converts a generic result to IResult for use in minimal APIs.
     /// </summary>
@@ -66,13 +74,21 @@ public static partial class ResultBuilderExtensions
             statusCode: (int)(result.StatusCode ??
                               (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest)));
 
-    public static IResult ToHttpResultMinimal<T>(this ResultBuilder<T> result, HttpStatusCode? statusCode) =>
-        Results.Json(result,
+    public static IResult ToHttpResultMinimal<T>(this ResultBuilder<T> result, HttpStatusCode? statusCode)
+    {
+        if (statusCode != null)
+        {
+            result.StatusCode = statusCode;
+            if (result.ProblemDetails != null) result.ProblemDetails.Status = (int)statusCode;
+        }
+
+        return Results.Json(result,
             new JsonSerializerOptions(JsonSerializerDefaults.Web),
             contentType: "application/json",
-            statusCode: (int)(statusCode ?? result.StatusCode ??
+            statusCode: (int)(result.StatusCode ??
                               (result.Succeeded ? HttpStatusCode.OK : HttpStatusCode.BadRequest)));
-    
+    }
+
     /// <summary>
     /// Converts a generic result to a non-generic version.
     /// </summary>
@@ -102,7 +118,7 @@ public static partial class ResultBuilderExtensions
             Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
             Title = "A problem occurred.",
             Detail = "A problem occurred.",
-            Status = (int)HttpStatusCode.BadRequest,
+            Status = (int)(result.StatusCode ?? HttpStatusCode.BadRequest),
             Extensions = new Dictionary<string, object?>()
         };
         return result;
@@ -173,7 +189,7 @@ public static partial class ResultBuilderExtensions
         result.ProblemDetails!.Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1";
         result.ProblemDetails.Title = "An exception was thrown";
         result.ProblemDetails.Detail = JsonConvert.SerializeObject(ex);
-        result.ProblemDetails.Status = (int)HttpStatusCode.InternalServerError;
+        result.ProblemDetails.Status = (int)(result.StatusCode ?? HttpStatusCode.InternalServerError);
         result.ProblemDetails.Instance = httpContext?.Request.Path ?? ex.StackTrace;
         return result;
     }
