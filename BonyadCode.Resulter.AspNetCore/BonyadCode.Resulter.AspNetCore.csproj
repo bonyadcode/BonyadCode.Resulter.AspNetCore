@@ -1,23 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <!-- Target multiple .NET versions -->
+        <TargetFramework>net9.0</TargetFramework>
         <TargetFramework>net8.0</TargetFramework>
+
+        <!-- Enable implicit usings and nullable reference types -->
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <!-- NuGet Info -->
+        <!-- NuGet package metadata -->
         <IsPackable>true</IsPackable>
         <PackageId>BonyadCode.Resulter.AspNetCore</PackageId>
-        <Version>1.0.9</Version>
+        <Version>1.1.0</Version>
         <Authors>Mojtaba Hosseini</Authors>
         <Company>BonyadCode</Company>
         <Description>A set of utilities for returning standardized API results, supporting both controllers and minimal APIs.</Description>
         <PackageTags>Resulter;ResultBuilder;API;Web;Minimal API;Controller;IResult;Results;IActionResult;ObjectResult</PackageTags>
-        <RepositoryUrl>https://github.com/bonyadcode/Resulter.AspNetCore</RepositoryUrl>
+        <RepositoryUrl>https://github.com/bonyadcode/BonyadCode.Resulter.AspNetCore</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
 
-        <!-- Source link -->
+        <!-- Enable source link and symbols for debugging -->
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
         <IncludeSymbols>true</IncludeSymbols>
@@ -25,12 +29,15 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- Reference ASP.NET Core shared framework -->
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <!-- Include README and LICENSE files in the NuGet package -->
         <None Include="..\README.md" Pack="true" PackagePath="" />
         <None Include="..\LICENSE" Pack="true" PackagePath="" />
     </ItemGroup>
 
     <ItemGroup>
+        <!-- NuGet package dependencies -->
         <PackageReference Include="FluentValidation" Version="12.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
