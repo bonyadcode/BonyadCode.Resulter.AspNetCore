@@ -107,7 +107,7 @@ public static partial class ResultBuilderExtensions
         }
 
         if (result.ProblemDetails != null) result.ProblemDetails.Instance = httpContext?.Request.Path ?? null;
-
+        
         return Results.Json(result,
             new JsonSerializerOptions(JsonSerializerDefaults.Web),
             contentType: "application/json",
@@ -116,10 +116,27 @@ public static partial class ResultBuilderExtensions
     }
 
     /// <summary>
-    /// Converts a generic result to a non-generic version.
+    /// Converts a typed ResultBuilder to a void ResultBuilder.
+    /// Preserves Data as (object) type 
     /// </summary>
-    private static ResultBuilder ToVoidResultBuilder<T>(this ResultBuilder<T> result) =>
+    public static ResultBuilder ToVoidResultBuilder<TSource>(this ResultBuilder<TSource> result) =>
         ResultBuilder.Create(result.Succeeded, result.StatusCode, result.Data, result.ProblemDetails);
+
+    /// <summary>
+    /// Converts a void ResultBuilder to a typed ResultBuilder.
+    /// Preserves Data only if the source Data is type of T.
+    /// </summary>
+    public static ResultBuilder<TTarget> ToTypedResultBuilder<TTarget>(this ResultBuilder result) =>
+        ResultBuilder<TTarget>.Create(result.Succeeded, result.StatusCode, result.Data is TTarget typedData ? typedData : default,
+            result.ProblemDetails);
+
+    /// <summary>
+    /// Converts a source typed ResultBuilder to a target typed ResultBuilder.
+    /// Preserves Data only if the TSource and TTarget are of the same Type. Use like this: ResultBuilder&lt;TTarget, TSource> e.g. ResultBuilder&lt;string, int>
+    /// </summary>
+    public static ResultBuilder<TTarget> ToTypedResultBuilder<TTarget, TSource>(this ResultBuilder<TSource> result) =>
+        ResultBuilder<TTarget>.Create(result.Succeeded, result.StatusCode,
+            result.Data is TTarget typedData ? typedData : default, result.ProblemDetails);
 }
 
 public static partial class ResultBuilderExtensions
@@ -214,7 +231,7 @@ public static partial class ResultBuilderExtensions
             result.ProblemDetails.Detail = JsonConvert.SerializeObject(exception);
             result.ProblemDetails.Status = (int)(result.StatusCode ?? HttpStatusCode.InternalServerError);
             result.ProblemDetails.Instance = exception.StackTrace;
-            
+
             if (!result.ProblemDetails.Extensions.TryGetValue(ExtensionsKey, out var extObj) ||
                 extObj is not Dictionary<string, object?> extDict)
             {
@@ -470,7 +487,6 @@ public static partial class ResultBuilderExtensions
     private static ProblemDetails GetProblemDetailsFromHttpStatusCode(
         HttpStatusCode? httpStatusCode = HttpStatusCode.BadRequest)
     {
-        
         var problemDetails = new ProblemDetails
         {
             Title = "A problem occurred.",
