@@ -405,3 +405,8 @@ Apache 2.0 — see the [LICENSE](LICENSE) file.
 
 * [NuGet](https://www.nuget.org/packages/BonyadCode.Resulter.AspNetCore)
 * [GitHub](https://github.com/bonyadcode/BonyadCode.Resulter.AspNetCore)
+
+Usage Conditions:
+- This program must not be used for any military or governmental purposes without the owner's consent.
+- This program must not be used for any inhumane purposes.
+- This program must not be used for any illegal or haram activities.
