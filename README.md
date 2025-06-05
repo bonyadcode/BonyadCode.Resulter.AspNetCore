@@ -2,7 +2,9 @@ In the name of God
 
 # BonyadCode.Resulter.AspNetCore
 
-A utility library to standardize API responses in ASP.NET Core. It supports both Controllers and Minimal APIs with consistent handling of success, failure, validation errors, and exceptions, using rich ProblemDetails following RFC7807.
+A utility library to standardize API responses in ASP.NET Core. It supports both Controllers and Minimal APIs with
+consistent handling of success, failure, validation errors, and exceptions, using rich ProblemDetails following RFC7807.
+
 ---
 
 ## ✨ Features
@@ -407,6 +409,7 @@ Apache 2.0 — see the [LICENSE](LICENSE) file.
 * [GitHub](https://github.com/bonyadcode/BonyadCode.Resulter.AspNetCore)
 
 Usage Conditions:
+
 - This program must not be used for any military or governmental purposes without the owner's consent.
 - This program must not be used for any inhumane purposes.
 - This program must not be used for any illegal or haram activities.
