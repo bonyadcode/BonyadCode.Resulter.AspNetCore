@@ -2,8 +2,7 @@
 
     <PropertyGroup>
         <!-- Target multiple .NET versions -->
-        <TargetFramework>net9.0</TargetFramework>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>net9.0; net8.0</TargetFrameworks>
 
         <!-- Enable implicit usings and nullable reference types -->
         <ImplicitUsings>enable</ImplicitUsings>
@@ -12,7 +11,7 @@
         <!-- NuGet package metadata -->
         <IsPackable>true</IsPackable>
         <PackageId>BonyadCode.Resulter.AspNetCore</PackageId>
-        <Version>1.1.1</Version>
+        <Version>1.1.2</Version>
         <Authors>Mojtaba Hosseini</Authors>
         <Company>BonyadCode</Company>
         <Description>A set of utilities for returning standardized API results, supporting both controllers and minimal APIs.</Description>
@@ -31,6 +30,7 @@
     <ItemGroup>
         <!-- Reference ASP.NET Core shared framework -->
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        
         <!-- Include README and LICENSE files in the NuGet package -->
         <None Include="..\README.md" Pack="true" PackagePath="" />
         <None Include="..\LICENSE" Pack="true" PackagePath="" />
