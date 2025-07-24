@@ -139,6 +139,9 @@ public static partial class ResultBuilderExtensions
             result.Data is TTarget typedData ? typedData : default, result.ProblemDetails);
 }
 
+// ------------------
+// ProblemDetails Helpers with Simple, Custom and Exception
+// ------------------
 public static partial class ResultBuilderExtensions
 {
     private const string ExtensionsKey = "extensions";
@@ -251,6 +254,9 @@ public static partial class ResultBuilderExtensions
     }
 }
 
+// ------------------
+// ProblemDetails Helpers with Identity and Validation
+// ------------------
 public static partial class ResultBuilderExtensions
 {
     // ------------------
@@ -356,6 +362,9 @@ public static partial class ResultBuilderExtensions
     }
 }
 
+// ------------------
+// ProblemDetails Helpers with Key-Value Pairs
+// ------------------
 public static partial class ResultBuilderExtensions
 {
     // ------------------
@@ -478,6 +487,9 @@ public static partial class ResultBuilderExtensions
     }
 }
 
+// ------------------
+// ProblemDetails Helpers with Http
+// ------------------
 public static partial class ResultBuilderExtensions
 {
     // ------------------
